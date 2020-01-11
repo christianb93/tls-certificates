@@ -3,6 +3,10 @@
   hosts: localhost
   become: no
   tasks:
+    - name: Make sure that etc/certs exists 
+      file: 
+        state: directory
+        path: "{{playbook_dir}}/etc/certs"
     - name: Create key pair for the server
       openssl_privatekey:
         path: "{{playbook_dir}}/etc/certs/server.rsa"
