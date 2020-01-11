@@ -1,0 +1,14 @@
+[req]
+prompt = no
+distinguished_name = dn
+x509_extensions = v3_ext
+
+[dn]
+CN = Leftasexercise
+emailAddress = me@leftasexercise.com
+O = Leftasexercise blog
+L = Big city
+C = DE
+
+[v3_ext]
+subjectAltName=DNS:*.leftasexercise.local,DNS:leftasexercise.local

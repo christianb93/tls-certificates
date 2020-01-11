@@ -1,0 +1,43 @@
+---
+- name: Create keys and certificates
+  hosts: localhost
+  become: no
+  tasks:
+    - name: Create key pair for the server
+      openssl_privatekey:
+        path: "{{playbook_dir}}/etc/certs/server.rsa"
+        size: 2048
+    - name: Create certificate signing request
+      openssl_csr:
+        common_name: "Leftasexercise"
+        country_name: "DE"
+        email_address: "me@leftasexercise.com"
+        locality_name: "Big city"
+        organization_name: "Leftasexercise blog"
+        path: "{{playbook_dir}}/server.csr"
+        subject_alt_name: 
+           - "DNS:*.leftasexercise.local"
+           - "DNS:leftasexercise.local"
+        privatekey_path: "{{playbook_dir}}/etc/certs/server.rsa"
+    - name: Create self-signed certificate
+      openssl_certificate:
+        csr_path: "{{playbook_dir}}/server.csr"
+        path: "{{playbook_dir}}/etc/certs/server.crt"
+        provider: selfsigned
+        privatekey_path: "{{playbook_dir}}/etc/certs/server.rsa"
+
+- name: Bring up Docker container 
+  hosts: localhost 
+  become: no
+  tasks:
+    - name: Start NGINX container 
+      docker_container:
+        auto_remove: yes
+        detach: yes
+        volumes:
+          - "{{playbook_dir}}/etc/certs:/etc/nginx/certs"
+          - "{{playbook_dir}}/etc/conf.d:/etc/nginx/conf.d"
+        published_ports:
+          - 443:443
+        image: "nginx:latest"
+        name: "tls-nginx"
