@@ -1,0 +1,38 @@
+---
+- name: Create keys and certificates for root CA
+  hosts: localhost
+  become: no
+  tasks:
+    - name: Make sure that etc/certs exists 
+      file: 
+        state: directory
+        path: "{{playbook_dir}}/etc/certs"
+    - name: Create key pair for the root CA
+      openssl_privatekey:
+        path: "{{playbook_dir}}/etc/certs/ca.rsa"
+        size: 2048
+    - name: Create certificate signing request
+      openssl_csr:
+        common_name: "Root CA"
+        country_name: "DE"
+        email_address: "me@leftasexercise.com"
+        locality_name: "Big city"
+        organization_name: "Leftasexercise blog"
+        key_usage:
+            - digitalSignature
+            - keyCertSign 
+            - cRLSign
+        key_usage_critical: yes
+        basic_constraints: 
+            - CA:TRUE
+        basic_constraints_critical: yes
+        use_common_name_for_san: false
+        path: "{{playbook_dir}}/ca.csr"
+        privatekey_path: "{{playbook_dir}}/etc/certs/ca.rsa"
+    - name: Create self-signed certificate
+      openssl_certificate:
+        csr_path: "{{playbook_dir}}/ca.csr"
+        path: "{{playbook_dir}}/etc/certs/ca.crt"
+        provider: selfsigned
+        selfsigned_create_subject_key_identifier: always_create
+        privatekey_path: "{{playbook_dir}}/etc/certs/ca.rsa"    
