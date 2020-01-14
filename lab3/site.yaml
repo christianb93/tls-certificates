@@ -1,0 +1,136 @@
+---
+- name: Create keys and certificates for root CA
+  hosts: localhost
+  become: no
+  tasks:
+    - name: Make sure that etc/certs exists 
+      file: 
+        state: directory
+        path: "{{playbook_dir}}/etc/certs"
+    - name: Create key pair for the root CA
+      openssl_privatekey:
+        path: "{{playbook_dir}}/etc/certs/ca.rsa"
+        size: 2048
+    - name: Create certificate signing request
+      openssl_csr:
+        common_name: "Root CA"
+        country_name: "DE"
+        email_address: "ca@leftasexercise.com"
+        locality_name: "Big city"
+        organization_name: "Leftasexercise blog"
+        key_usage:
+            - digitalSignature
+            - keyCertSign 
+            - cRLSign
+        key_usage_critical: yes
+        basic_constraints: 
+            - CA:TRUE
+        basic_constraints_critical: yes
+        use_common_name_for_san: false
+        path: "{{playbook_dir}}/ca.csr"
+        privatekey_path: "{{playbook_dir}}/etc/certs/ca.rsa"
+    - name: Create self-signed certificate
+      openssl_certificate:
+        csr_path: "{{playbook_dir}}/ca.csr"
+        path: "{{playbook_dir}}/etc/certs/ca.crt"
+        provider: selfsigned
+        selfsigned_create_subject_key_identifier: always_create
+        privatekey_path: "{{playbook_dir}}/etc/certs/ca.rsa"    
+
+- name: Create keys and certificates for intermediate CA
+  hosts: localhost
+  become: no
+  tasks:
+    - name: Create key pair for the intermediate CA
+      openssl_privatekey:
+        path: "{{playbook_dir}}/etc/certs/intermediate-ca.rsa"
+        size: 2048
+    - name: Create certificate signing request
+      openssl_csr:
+        common_name: "Intermediate CA"
+        country_name: "DE"
+        email_address: "intermediate-ca@leftasexercise.com"
+        locality_name: "Big city"
+        organization_name: "Leftasexercise blog"
+        key_usage:
+            - digitalSignature
+            - keyCertSign 
+            - cRLSign
+        key_usage_critical: yes
+        basic_constraints: 
+            - CA:TRUE
+            - pathlen:0
+        basic_constraints_critical: yes
+        use_common_name_for_san: false
+        path: "{{playbook_dir}}/intermediate-ca.csr"
+        privatekey_path: "{{playbook_dir}}/etc/certs/intermediate-ca.rsa"
+    - name: Create certificate for intermediate CA
+      openssl_certificate:
+        csr_path: "{{playbook_dir}}/intermediate-ca.csr"
+        path: "{{playbook_dir}}/etc/certs/intermediate-ca.crt"
+        provider: ownca
+        ownca_path: "{{playbook_dir}}/etc/certs/ca.crt"
+        ownca_create_subject_key_identifier: always_create
+        ownca_privatekey_path: "{{playbook_dir}}/etc/certs/ca.rsa"    
+
+- name: Create keys and certificates for the server
+  hosts: localhost
+  become: no
+  tasks:
+    - name: Create key pair for the server
+      openssl_privatekey:
+        path: "{{playbook_dir}}/etc/certs/server.rsa"
+        size: 2048
+    - name: Create certificate signing request
+      openssl_csr:
+        common_name: "Server"
+        country_name: "DE"
+        email_address: "server@leftasexercise.com"
+        locality_name: "Big city"
+        organization_name: "Leftasexercise blog"
+        subject_alt_name: 
+            - DNS:*.leftasexercise.local
+            - DNS:leftasexercise.local
+        path: "{{playbook_dir}}/server.csr"
+        privatekey_path: "{{playbook_dir}}/etc/certs/server.rsa"
+    - name: Create certificate for server
+      openssl_certificate:
+        csr_path: "{{playbook_dir}}/server.csr"
+        path: "{{playbook_dir}}/etc/certs/server.crt"
+        provider: ownca
+        ownca_path: "{{playbook_dir}}/etc/certs/intermediate-ca.crt"
+        ownca_create_subject_key_identifier: always_create
+        ownca_privatekey_path: "{{playbook_dir}}/etc/certs/intermediate-ca.rsa"    
+
+- name: Create keys and certificates for the client
+  hosts: localhost
+  become: no
+  tasks:
+    - name: Create key pair for the client
+      openssl_privatekey:
+        path: "{{playbook_dir}}/etc/certs/client.rsa"
+        size: 2048
+    - name: Create certificate signing request
+      openssl_csr:
+        common_name: "Client"
+        country_name: "DE"
+        email_address: "client@leftasexercise.com"
+        locality_name: "Big city"
+        organization_name: "Leftasexercise blog"
+        use_common_name_for_san: false
+        key_usage: 
+            - digitalSignature
+            - keyEncipherment
+        extended_key_usage: 
+            - clientAuth
+        path: "{{playbook_dir}}/client.csr"
+        privatekey_path: "{{playbook_dir}}/etc/certs/client.rsa"
+    - name: Create certificate for client, signed by intermediate CA
+      openssl_certificate:
+        csr_path: "{{playbook_dir}}/client.csr"
+        path: "{{playbook_dir}}/etc/certs/client.crt"
+        provider: ownca
+        ownca_path: "{{playbook_dir}}/etc/certs/intermediate-ca.crt"
+        ownca_create_subject_key_identifier: always_create
+        ownca_privatekey_path: "{{playbook_dir}}/etc/certs/intermediate-ca.rsa"    
+ 
