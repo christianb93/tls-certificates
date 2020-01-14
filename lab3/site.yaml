@@ -134,3 +134,12 @@
         ownca_create_subject_key_identifier: always_create
         ownca_privatekey_path: "{{playbook_dir}}/etc/certs/intermediate-ca.rsa"    
  
+- name: Create files with certificate chains for server and client
+  hosts: localhost
+  become: no
+  tasks:
+    - name: Create certificate chains for server and client
+      shell: | 
+        cd {{playbook_dir}}/etc/certs
+        cat server.crt intermediate-ca.crt > server-chain.crt
+        cat client.crt intermediate-ca.crt > client-chain.crt
