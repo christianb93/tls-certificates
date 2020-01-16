@@ -143,3 +143,18 @@
         cd {{playbook_dir}}/etc/certs
         cat server.crt intermediate-ca.crt > server-chain.crt
         
+- name: Bring up Docker container 
+  hosts: localhost 
+  become: no
+  tasks:
+    - name: Start NGINX container 
+      docker_container:
+        auto_remove: yes
+        detach: yes
+        volumes:
+          - "{{playbook_dir}}/etc/certs:/etc/nginx/certs"
+          - "{{playbook_dir}}/etc/conf.d:/etc/nginx/conf.d"
+        published_ports:
+          - 443:443
+        image: "nginx:latest"
+        name: "tls-nginx"
